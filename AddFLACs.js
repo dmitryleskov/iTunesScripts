@@ -69,6 +69,8 @@ try {
     WScript.Quit(1)
 }
 
+var iTunesLibrary = iTunesApp.LibraryPlaylist;
+
 var savedEncoder = iTunesApp.CurrentEncoder
 if (savedEncoder.Name != "Lossless Encoder") {
     log("Current Encoder: "+savedEncoder.Name)
@@ -85,7 +87,8 @@ log("Importing FLAC files from "+src.Name)
 function Traverse(folder) {
     log("Entered "+folder.Path)
     var files = new Enumerator(folder.Files)
-    for(files.moveFirst(); !files.atEnd(); files.moveNext()) {
+    folderScanLoop:
+    for (files.moveFirst(); !files.atEnd(); files.moveNext()) {
         file = files.item()
         if (/.flac$/i.test(file.Name)) {
             log("Found FLAC file "+file.Path)
@@ -136,10 +139,24 @@ function Traverse(folder) {
                 }
             }
 
+            var similar = iTunesLibrary.Search(tags.Title, 5)
+            if (similar) {
+                for (i = 1; i<= similar.Count; i++) {
+                    var track = similar.Item(i)
+                    if (track.Name   == tags.Title &&
+                        track.Album  == tags.Album &&
+                        track.Artist == tags.Artist) {
+                        WScript.Echo("Track already in library")
+                        continue folderScanLoop;
+                    }
+                }
+
+            }
+
             var tempWAVPath = fso.BuildPath(tempFolderPath, 'temp.wav')
             log("Decompressing FLAC file into "+tempWAVPath)
 
-            exec = WSH.Exec('flac.exe -d -o "'+tempWAVPath+'" "'+sourcePath+'"')
+            exec = WSH.Exec('flac.exe -s -d -o "'+tempWAVPath+'" "'+sourcePath+'"')
             while (exec.Status == 0) {
                 WScript.Sleep(100)
             }
