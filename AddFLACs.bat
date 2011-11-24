@@ -1,1 +1,1 @@
-cscript /b /Nologo %~n0.js %* 
+cscript /Nologo %~n0.js %* 
