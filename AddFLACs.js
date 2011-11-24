@@ -42,7 +42,7 @@ var WSH = new ActiveXObject("WScript.Shell")
 
 var fso = new ActiveXObject("Scripting.FileSystemObject")
 
-var src = fso.GetFolder("test\\test") //Dalida")
+var src = fso.GetFolder(".")
 
 var args = WScript.Arguments
 WScript.Echo(args.length)
@@ -163,7 +163,13 @@ function Traverse(folder) {
                     case 'GENRE':
                         tags['Genre'] = pair[2]
                         break
+                    case 'COMPILATION':
+                        tags['Compilation'] = pair[2]
+                        break
                     case 'COMMENT':
+                        break
+                    default:
+                        log("Unrecognized meta tag: "+pair[1])
                         break
                     }
                 }
@@ -214,6 +220,7 @@ function Traverse(folder) {
             if ('Genre' in tags) track.Genre = tags.Genre
             if ('TrackNumber' in tags) track.TrackNumber = tags.TrackNumber
             if ('Date' in tags) track.Year = tags.Date
+            if ('Compilation' in tags) track.Compilation = tags.Compilation != 0
 
             // As there was no metadata in the intermediate WAV file, 
             // the file containing the track was stored under 
