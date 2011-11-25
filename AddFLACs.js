@@ -125,7 +125,7 @@ function Traverse(folder) {
                 WScript.Echo("ASCII metadata, no transcoding needed")
             else {
                 WScript.Echo("Transcoding metadata from UTF-8 to Unicode")
-                exec = WSH.Exec('cmd /c UTF8toUnicode tags <"'+utf8MetadataFilePath+'"')
+                exec = WSH.Exec('cmd /c UTF8toUnicode >tags <"'+utf8MetadataFilePath+'"')
                 while (exec.Status == 0) {
                     WScript.Sleep(100)
                 }
