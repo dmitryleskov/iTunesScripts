@@ -1,6 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
-//#include <fcntl.h>
+#include <fcntl.h>
 #include <io.h>
 
 int main(void) {
