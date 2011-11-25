@@ -105,35 +105,18 @@ function Traverse(folder) {
             }
 
             log("Extracting metadata from "+sourcePath)
-//            exec = WSH.Exec('metaflac --export-tags-to=- "'+sourcePath+'"')
-            var utf8MetadataFilePath = fso.BuildPath(tempFolderPath, 'temp.utf8')
-            exec = WSH.Exec('metaflac --export-tags-to="'+utf8MetadataFilePath+'" --no-utf8-convert "'+sourcePath+'"')
+            exec = WSH.Exec('cmd /c metaflac'+
+                            ' --export-tags-to=-'+
+                            ' --no-utf8-convert'+
+                            ' "'+sourcePath+'"'+
+                            ' | UTF8toUnicode >tags')
             while (exec.Status == 0) {
                 WScript.Sleep(100)
             }
 
-            var utf8MetadataFile = 
-                fso.OpenTextFile(
-                    utf8MetadataFilePath,
-                    1,      // ForReading
-                    false,  // Do not create if absent
-                    0)      // ANSI
-            var metadata = utf8MetadataFile.ReadAll()
-            utf8MetadataFile.Close()
-
-            if (!metadata.match(/[^\x01-\x7e]/)) 
-                WScript.Echo("ASCII metadata, no transcoding needed")
-            else {
-                WScript.Echo("Transcoding metadata from UTF-8 to Unicode")
-                exec = WSH.Exec('cmd /c UTF8toUnicode >tags <"'+utf8MetadataFilePath+'"')
-                while (exec.Status == 0) {
-                    WScript.Sleep(100)
-                }
-                var unicodeMetadataFile = fso.OpenTextFile("tags",1,false,-1)
-                var metadata = unicodeMetadataFile.ReadAll()
-                unicodeMetadataFile.Close()
-                transcodeList.WriteLine(file.Path)
-            }
+            var unicodeMetadataFile = fso.OpenTextFile("tags",1,false,-1)
+            var metadata = unicodeMetadataFile.ReadAll()
+            unicodeMetadataFile.Close()
 
 //            continue folderScanLoop;
             
