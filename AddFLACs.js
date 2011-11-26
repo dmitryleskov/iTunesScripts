@@ -1,11 +1,19 @@
+function debug(s) {
+    if (debug) WScript.Echo(s)
+}
+
 function log(s) {
     if (verbose) WScript.Echo(s)
+}
+
+function warning(s) {
+    WScript.Echo('WARNING: '+s)
 }
 
 function waitForCompletion(status) {
     var tn = status.TrackName
     if (tn) WScript.StdOut.Write(tn)
-    while ( status.InProgress ) {
+    while (status.InProgress) {
         var percentile = Math.round(status.ProgressValue/status.MaxProgressValue*100)
         WScript.StdOut.Write("..."+percentile+"%")
         WScript.Sleep(500)
@@ -19,6 +27,12 @@ function waitForCompletion(status) {
     }
 }
 
+//
+// As there is no way in JScript to determine what is the ANSI codepage
+// or whether the given Unicode character belongs to it,
+// I had to create this little hack - write the string to a temporary 
+// text file in ANSI mode, read it back and compare with the original.
+//
 function isANSIString(s) {
     var tempPathname = fso.BuildPath(tempFolderPath, fso.GetTempName())
     var tempFile = fso.CreateTextFile(tempPathname, true)
@@ -37,6 +51,7 @@ function isANSIString(s) {
 }
 
 var verbose = true
+var debug = false
 WScript.Interactive = true
 var WSH = new ActiveXObject("WScript.Shell")
 
@@ -82,8 +97,6 @@ if (savedEncoder.Name != "Lossless Encoder") {
     }
 }
 
-transcodeList = fso.CreateTextFile("transcoded.lst", true, true)
-
 log("Importing FLAC files from "+src.Name)
 
 function Traverse(folder) {
@@ -94,7 +107,11 @@ function Traverse(folder) {
         file = files.item()
         if (/.flac$/i.test(file.Name)) {
             log("Found FLAC file "+file.Path)
-           
+
+            // WshShell.Exec() is not Unicode-aware. Any non-ANSI characters
+            // in its argument will get mangled. This workaround determines
+            // if there are any non-ANSI characters in the full pathname 
+            // of the FLAC file.
             if (!isANSIString(file.Path)) {
                 log("File name contains non-ANSI characters")
                 var tempFLACPath = fso.BuildPath(tempFolderPath, 'temp.flac')
@@ -105,29 +122,27 @@ function Traverse(folder) {
             }
 
             log("Extracting metadata from "+sourcePath)
+            var tempMetadataPath = fso.BuildPath(tempFolderPath, 'temp.meta')
             exec = WSH.Exec('cmd /c metaflac'+
                             ' --export-tags-to=-'+
                             ' --no-utf8-convert'+
                             ' "'+sourcePath+'"'+
-                            ' | UTF8toUnicode >tags')
+                            ' | UTF8toUnicode '+
+                            ' > "'+tempMetadataPath+'"')
             while (exec.Status == 0) {
                 WScript.Sleep(100)
             }
 
-            var unicodeMetadataFile = fso.OpenTextFile("tags",1,false,-1)
-            var metadata = unicodeMetadataFile.ReadAll()
-            unicodeMetadataFile.Close()
-
-//            continue folderScanLoop;
-            
-            metadata = metadata.split(/\r\n|\r|\n/)
+            var metadataFile = fso.OpenTextFile(tempMetadataPath,1,false,-1)
+            var metadata = metadataFile.ReadAll()
+            metadataFile.Close()
 
             var tags = []
-
+            metadata = metadata.split(/\r\n|\r|\n/)
             for (var i in metadata) {
                 var pair = metadata[i].match(/(.+?)=(.+)/)
                 if (pair) {
-                    switch(pair[1]) {
+                    switch(pair[1].toUpperCase()) {
                     case 'ARTIST':
                         tags['Artist'] = pair[2]
                         break
@@ -158,12 +173,10 @@ function Traverse(folder) {
                 }
             }
 
-            if (typeof tags.Title == "undefined") {
-                WScript.Echo("No track title in metadata, skipping")
+            if (!('Title' in tags && 'Album' in tags && 'Artist' in tags)) {
+                WScript.Echo("No track title, album, or artist in metadata, skipping")
                 continue folderScanLoop;
             }
-
-            WScript.Echo(tags.Title)
 
             var similar = iTunesLibrary.Search(tags.Title, 5)
             if (similar) {
@@ -172,11 +185,10 @@ function Traverse(folder) {
                     if (track.Name   == tags.Title &&
                         track.Album  == tags.Album &&
                         track.Artist == tags.Artist) {
-                        WScript.Echo("Track already in library")
+                        warning("Track already in library, skipping")
                         continue folderScanLoop;
                     }
                 }
-
             }
 
             var tempWAVPath = fso.BuildPath(tempFolderPath, 'temp.wav')
@@ -235,5 +247,3 @@ function Traverse(folder) {
 }
 
 Traverse(src)
-
-transcodeList.Close()
