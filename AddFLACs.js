@@ -1,3 +1,13 @@
+//
+// AddFLACs.js - add FLAC audio files to iTunes media library
+//
+// Version: 0.9
+//
+// Refer to the LICENSE file for licensing conditions.
+//
+// Copyright (c) 2011, Dmitry Leskov. All rights reserved.
+//
+
 function debug(s) {
     if (debug) WScript.Echo(s)
 }
