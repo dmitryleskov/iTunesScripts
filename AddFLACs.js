@@ -54,7 +54,6 @@ var verbose = true
 var debug = false
 WScript.Interactive = true
 var WSH = new ActiveXObject("WScript.Shell")
-
 var fso = new ActiveXObject("Scripting.FileSystemObject")
 
 var src = fso.GetFolder(".")
@@ -69,9 +68,22 @@ for (var i = 0; i < args.length; i++) {
     }
 }
 
-var tempFolder = fso.GetSpecialFolder(2) // 2 - TemporaryFolder
-var tempFolderPath = tempFolder.Path
-log("Using "+tempFolderPath+" for storing temporary files")
+function pad(d) {return d < 10 ? "0"+d : d}
+
+var today = new Date()
+var sessionName = 
+        fso.GetBaseName(WScript.ScriptName)+"-"+
+        today.getFullYear()+"-"+
+        pad(today.getMonth()+1)+"-"+
+        pad(today.getDate())+"-"+
+        pad(today.getHours())+"-"+
+        pad(today.getMinutes())+"-"+
+        pad(today.getSeconds())
+
+var sysTempFolder = fso.GetSpecialFolder(2) // 2 - TemporaryFolder
+var tempFolderPath = fso.BuildPath(sysTempFolder.Path, sessionName)
+log("Creating folder "+tempFolderPath+" for storing temporary files")
+fso.CreateFolder(tempFolderPath)
 
 try {
     log("Connecting to iTunes COM server...")
@@ -100,7 +112,7 @@ if (savedEncoder.Name != "Lossless Encoder") {
 log("Importing FLAC files from "+src.Name)
 
 function Traverse(folder) {
-    log("Entered "+folder.Path)
+    log("Scanning folder "+folder.Path)
     var files = new Enumerator(folder.Files)
     folderScanLoop:
     for (files.moveFirst(); !files.atEnd(); files.moveNext()) {
@@ -199,14 +211,9 @@ function Traverse(folder) {
                 WScript.Sleep(100)
             }
             
-            var tempWAVPath2 = fso.BuildPath(tempFolderPath, file.Name.replace(/\.[^\.]+$/, '.wav'))
-            log("Renaming WAV file to "+tempWAVPath2)
-            if (fso.FileExists(tempWAVPath2)) fso.DeleteFile(tempWAVPath2)
-            fso.MoveFile(tempWAVPath, tempWAVPath2)
-
-            log("Converting WAV file to track")
-            var status = iTunesApp.ConvertFile2(tempWAVPath2)
-            var track = waitForCompletion(status)
+            log("Converting WAV file to iTunes track")
+            var track = waitForCompletion(iTunesApp.ConvertFile2(tempWAVPath))
+            var trackLocation = track.Location
 
             log("Writing metadata")
             if ('Artist' in tags) track.Artist = tags.Artist
@@ -217,33 +224,36 @@ function Traverse(folder) {
             if ('Date' in tags) track.Year = tags.Date
             if ('Compilation' in tags) track.Compilation = tags.Compilation != 0
 
-            // As there was no metadata in the intermediate WAV file, 
-            // the file containing the track was stored under 
-            // "Unknown Artist\Unknown Album" subfolder of the iTunes library. 
-            // Setting the metadata does NOT cause iTunes to move the file 
-            // to the appropriate subfolder, UNLESS the option 
-            // "Keep iTunes Media folder organized" is set 
-            // under Preferences/Advanced. If the option is not set,
-            // converting the track again will do the trick.
+            //
+            // As there was no metadata in the intermediate WAV file,
+            // the file containing the track was stored 
+            // under "Unknown Artist\Unknown Album" subfolder of the iTunes library. 
+            // If the option "Keep iTunes Media folder organized" is NOT set 
+            // under Preferences/Advanced, setting the metadata have not 
+            // caused iTunes to move the file to the appropriate subfolder.
+            // Converting the track again will do the trick.
             // Only the metadata will be different in the resulting file.
-            if (track.Location.indexOf("\\Unknown Artist\\Unknown Album\\") != -1) {
-                log("Converting track")
-                status = iTunesApp.ConvertTrack2(track)
-                waitForCompletion(status)
+            //
+            if (track.Location == trackLocation) {
+                log("Re-converting the track to force rename and relocation")
+                waitForCompletion(iTunesApp.ConvertTrack2(track))
                 log("Deleting intermediate track")
-                log(track.Location)
+                var tempTrackPath = track.Location
                 track.Delete()
+                if (fso.FileExists(tempTrackPath))
+                    fso.DeleteFile(tempTrackPath)
             }
             log("Deleting temporary WAV file")
-            fso.DeleteFile(tempWAVPath2)
+            fso.DeleteFile(tempWAVPath)
         }
     }
     var subfolders = new Enumerator(folder.SubFolders)
     for(subfolders.moveFirst(); !subfolders.atEnd(); subfolders.moveNext()) {
-        subfolder = subfolders.item()
-        WScript.Echo(subfolder.Name)
-        Traverse(subfolder)
+        Traverse(subfolders.item())
     }
 }
 
 Traverse(src)
+
+log("Removing temporary folder "+tempFolderPath)
+fso.DeleteFolder(tempFolderPath)
