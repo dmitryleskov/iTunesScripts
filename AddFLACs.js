@@ -63,8 +63,14 @@ function isANSIString(s) {
 var verbose = true
 var debug = false
 WScript.Interactive = true
+
 var WSH = new ActiveXObject("WScript.Shell")
 var fso = new ActiveXObject("Scripting.FileSystemObject")
+
+var homeFolder  = fso.GetFile(WScript.ScriptFullName).ParentFolder
+var flacEXE     = fso.BuildPath(homeFolder, "flac.exe")
+var metaflacEXE = fso.BuildPath(homeFolder, "metaflac.exe")
+var utf8to16EXE = fso.BuildPath(homeFolder, "UTF8toUnicode.exe")
 
 var src = fso.GetFolder(".")
 
@@ -145,12 +151,12 @@ function Traverse(folder) {
 
             log("Extracting metadata from "+sourcePath)
             var tempMetadataPath = fso.BuildPath(tempFolderPath, 'temp.meta')
-            exec = WSH.Exec('cmd /c metaflac'+
+            exec = WSH.Exec('cmd /c ""'+metaflacEXE+'"'+
                             ' --export-tags-to=-'+
                             ' --no-utf8-convert'+
                             ' "'+sourcePath+'"'+
-                            ' | UTF8toUnicode '+
-                            ' > "'+tempMetadataPath+'"')
+                            ' | "'+utf8to16EXE+'"'+
+                            ' > "'+tempMetadataPath+'""')
             while (exec.Status == 0) {
                 WScript.Sleep(100)
             }
@@ -216,7 +222,7 @@ function Traverse(folder) {
             var tempWAVPath = fso.BuildPath(tempFolderPath, 'temp.wav')
             log("Decompressing FLAC file into "+tempWAVPath)
 
-            exec = WSH.Exec('flac.exe -s -d -o "'+tempWAVPath+'" "'+sourcePath+'"')
+            exec = WSH.Exec('"'+flacEXE+'" -s -d -o "'+tempWAVPath+'" "'+sourcePath+'"')
             while (exec.Status == 0) {
                 WScript.Sleep(100)
             }

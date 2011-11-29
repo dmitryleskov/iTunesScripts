@@ -1,1 +1,1 @@
-cscript /Nologo %~n0.js %* 
+cscript /Nologo "%~dpn0.js" %* 
