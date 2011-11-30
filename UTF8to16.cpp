@@ -1,3 +1,13 @@
+//
+// UTF8to16.cpp - convert a Unicode text stream from UTF-8 to UTF-16
+//
+// Version: 0.9
+//
+// Refer to the file COPYING.BSD for licensing conditions.
+//
+// Copyright (c) 2011 Dmitry Leskov. All rights reserved.
+//
+
 #define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES 1
 
 #include <fcntl.h>
