@@ -36,10 +36,12 @@ TRACKNUMBER, DATE, and COMPILATION.
 
 ## LICENSE ##
 
-The **AddFLACs** script and the Unicode converion helper are released under
+The **AddFLACs** script and the Unicode conversion helper are released under
 the BSD license (see COPYING.BSD.)
 
-The FLAC command-line tools are released under the GPL (see COPYING.GPL.)
+The FLAC command-line tools are released under the GPLv2 (see COPYING.GPL.)
+The source code may be obtained from 
+[the official FLAC pages on SourceForge](http://flac.sourceforge.net/download.html).
 
 ## SEE ALSO ##
 
