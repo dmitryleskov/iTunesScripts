@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual C++ Express 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UTF8to16", "UTF8to16.vcproj", "{BD7852C3-8391-45ED-BC1A-6BAF840E0106}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BD7852C3-8391-45ED-BC1A-6BAF840E0106}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BD7852C3-8391-45ED-BC1A-6BAF840E0106}.Debug|Win32.Build.0 = Debug|Win32
+		{BD7852C3-8391-45ED-BC1A-6BAF840E0106}.Release|Win32.ActiveCfg = Release|Win32
+		{BD7852C3-8391-45ED-BC1A-6BAF840E0106}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
