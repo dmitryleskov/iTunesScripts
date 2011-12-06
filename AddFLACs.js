@@ -3,7 +3,7 @@
 //
 // Version: 0.9
 //
-// Refer to the LICENSE file for licensing conditions.
+// Refer to the file COPYING.BSD for licensing conditions.
 //
 // Copyright (c) 2011, Dmitry Leskov. All rights reserved.
 //
@@ -70,7 +70,7 @@ var fso = new ActiveXObject("Scripting.FileSystemObject")
 var homeFolder  = fso.GetFile(WScript.ScriptFullName).ParentFolder
 var flacEXE     = fso.BuildPath(homeFolder, "flac.exe")
 var metaflacEXE = fso.BuildPath(homeFolder, "metaflac.exe")
-var utf8to16EXE = fso.BuildPath(homeFolder, "UTF8toUnicode.exe")
+var utf8to16EXE = fso.BuildPath(homeFolder, "UTF8to16.exe")
 
 var src = fso.GetFolder(".")
 
