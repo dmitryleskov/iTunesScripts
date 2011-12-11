@@ -3,7 +3,7 @@
 //
 // Version: 0.9
 //
-// Refer to the file COPYING.BSD for licensing conditions.
+// Refer to the file COPYING.MIT for licensing conditions.
 //
 // Copyright (c) 2011, Dmitry Leskov. All rights reserved.
 //
