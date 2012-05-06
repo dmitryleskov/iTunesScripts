@@ -43,8 +43,8 @@ try {
         case "-episode":
             var episodeIndex = args(++i)
             break
-        case "-title":
-            var titleIndex = args(++i)
+        case "-name":
+            var nameIndex = args(++i)
             break
         case "-n":
         case "--dry-run":
@@ -53,7 +53,7 @@ try {
             break
         default:
             if (args(i).substr(0,1) == "-") {
-                WScript.Echo("Required argument for "+args(i-1)+" is missing")
+                WScript.Echo("Unknown argument "+args(i))
                 WScript.Quit(1)
             }
             var regex = args(i) 
@@ -101,16 +101,16 @@ for (var i = 1; i <= iTunesSelectedTracks.Count; i++) {
     } 
 
     var trackFileName = fso.GetBaseName(track.Location)
+
     var result = trackFileName.match(regex)
     for (var m = 0; m < result.length; m++) {
-        if (m > 0) {
-            WScript.Echo("submatch " + m + ": ");
-        }
-        WScript.Echo(result[m]);
+        if (m == showIndex)    track.Show = result[m]
+        if (m == seasonIndex)  track.SeasonNumber = result[m]
+        if (m == episodeIndex) track.EpisodeNumber = result[m]
+        if (m == nameIndex)    track.Name = result[m]
     }
+    track.VideoKind = 3 // ITVideoKindTVShow 
 
-    WScript.Echo("Renaming track '"+
-                 track.Name+"' to '"+trackFileName+"'")
     if (!dryRun) {
 //        track.Name = fso.GetBaseName(track.Location)
     }
