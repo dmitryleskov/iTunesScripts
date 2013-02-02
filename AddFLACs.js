@@ -1,11 +1,11 @@
 //
 // AddFLACs.js - add FLAC audio files to iTunes media library
 //
-// Version: 0.9
+// Version: 0.91
 //
 // Refer to the file COPYING.MIT for licensing conditions.
 //
-// Copyright (c) 2011, Dmitry Leskov. All rights reserved.
+// Copyright (c) 2011-2013, Dmitry Leskov. All rights reserved.
 //
 
 function debug(s) {
@@ -184,13 +184,25 @@ function Traverse(folder) {
                         tags['Date'] = pair[2]
                         break
                     case 'TRACKNUMBER':
-                        tags['TrackNumber'] = pair[2]
+                        // Assume track numbers cannot have more than 3 digits
+                        if (/^[0-9]{1,3}$/.test(pair[2])) {
+                            // Tracks 1-9 would often have a leading zero,
+                            // which Javascript used to interpret as radix 8
+                            // in the good old days.
+                            tags['TrackNumber'] = parseInt(pair[2], 10)
+                        } else {
+                            warning("Not a valid track number: '" + pair[2] + "', ignoring")
+                        }
                         break
                     case 'GENRE':
                         tags['Genre'] = pair[2]
                         break
                     case 'COMPILATION':
-                        tags['Compilation'] = pair[2]
+                        // I have not seen many samples of this tag,
+                        // in fact EAC added COMPILATION=1 only for one
+                        // of my compilation CDs. So I will assume for now
+                        // that it is the valid way to mark compilations
+                        tags['Compilation'] = pair[2] != 0
                         break
                     case 'COMMENT':
                         break
