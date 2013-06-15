@@ -1,7 +1,7 @@
 //
 // AddFLACs.js - add FLAC audio files to iTunes media library
 //
-// Version: 0.91
+// Version: 0.92
 //
 // Refer to the file COPYING.MIT for licensing conditions.
 //
@@ -271,8 +271,10 @@ function Traverse(folder) {
                 if (fso.FileExists(tempTrackPath))
                     fso.DeleteFile(tempTrackPath)
             }
+            // #2: it turned out that flac.exe preserves the readonly attribute,
+            // so it is necessary to force removal
             log("Deleting temporary WAV file")
-            fso.DeleteFile(tempWAVPath)
+            fso.DeleteFile(tempWAVPath, true)
         }
     }
     var subfolders = new Enumerator(folder.SubFolders)
