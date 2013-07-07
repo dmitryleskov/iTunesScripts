@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="iTunesScripts : iTunes for Windows Automation Scripts by Dmitry Leskov" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>iTunesScripts</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/dmitryleskov/iTunesScripts">View on GitHub</a>
+
+          <h1 id="project_title">iTunesScripts</h1>
+          <h2 id="project_tagline">iTunes for Windows Automation Scripts by Dmitry Leskov</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/dmitryleskov/iTunesScripts/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/dmitryleskov/iTunesScripts/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p>This is the home of my iTunes for Windows automation scripts that I share with the world hoping that other people may find them useful.</p>
+
+<p>So far, I have published one script called <strong>AddFLACs</strong>, which imports FLAC audio files into iTunes in  Apple lossless format.</p>
+
+<p><strong><a href="https://github.com/dmitryleskov/iTunesScripts/releases">Download the latest binary release</a></strong> or read on.</p>
+
+<h1>
+<a name="addflacs" class="anchor" href="#addflacs"><span class="octicon octicon-link"></span></a>AddFLACs</h1>
+
+<h2>
+<a name="name" class="anchor" href="#name"><span class="octicon octicon-link"></span></a>NAME</h2>
+
+<p>AddFLACs - add FLAC files to the iTunes media library</p>
+
+<h2>
+<a name="synopsis" class="anchor" href="#synopsis"><span class="octicon octicon-link"></span></a>SYNOPSIS</h2>
+
+<p><code>AddFLACs [ FOLDER ]</code></p>
+
+<h2>
+<a name="description" class="anchor" href="#description"><span class="octicon octicon-link"></span></a>DESCRIPTION</h2>
+
+<p>The <strong>AddFLACs</strong> script scans the specified <em>FOLDER</em> and its subfolders
+for FLAC files, converts them to Apple lossless format and adds to the
+iTunes library.</p>
+
+<p>To avoid track duplication, <strong>AddFLACs</strong> first extracts the metadata from
+each FLAC file it encounters and checks if a track with <em>exactly</em> the 
+same artist, album and title is already present in the iTunes library.
+Such tracks will be skipped <em>even if they are in a different format</em>.</p>
+
+<p>If <em>FOLDER</em> is not specified, the current folder and its subfolders 
+will be scanned.</p>
+
+<h3>
+<a name="prerequisites" class="anchor" href="#prerequisites"><span class="octicon octicon-link"></span></a>Prerequisites</h3>
+
+<ul>
+<li><p>FLAC command-line utilities, <strong>flac.exe</strong> and <strong>metaflac.exe</strong>, and
+a UTF-8 to UTF-16 conversion helper must be present in the folder 
+containing the script.</p></li>
+<li><p>All FLAC files must be properly tagged prior to conversion. At a minimum, 
+the tags ARTIST, ALBUM, and TITLE must be present. Also recognized are GENRE, 
+TRACKNUMBER, DATE, and COMPILATION. </p></li>
+<li><p>If the DATE tag is present, it must contain year only.</p></li>
+</ul><h2>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>LICENSE</h2>
+
+<p>The <strong>AddFLACs</strong> script and the Unicode conversion helper are released under
+the MIT/X11 license (see <strong>COPYING.MIT</strong>.)</p>
+
+<p>The FLAC command-line tools are released under the GPLv2 (see <strong>COPYING.GPL</strong>.)
+The source code may be obtained from 
+<a href="http://flac.sourceforge.net/download.html">the official FLAC pages on SourceForge</a>.</p>
+
+<h2>
+<a name="see-also" class="anchor" href="#see-also"><span class="octicon octicon-link"></span></a>SEE ALSO</h2>
+
+<p><a href="http://www.xiph.org/vorbis/doc/v-comment.html">Vorbis Comments</a></p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">iTunesScripts maintained by <a href="https://github.com/dmitryleskov">dmitryleskov</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
