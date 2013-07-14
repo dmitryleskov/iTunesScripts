@@ -1,0 +1,4 @@
+ARTIST=!!! AddFLACs test artist
+ALBUM=!!! AddFLACs test album
+DATE=2013
+GENRE=Rock
