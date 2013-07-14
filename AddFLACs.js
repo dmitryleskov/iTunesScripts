@@ -1,16 +1,12 @@
 //
 // AddFLACs.js - add FLAC audio files to iTunes media library
 //
-// Version: 0.92
+// Version: 0.93
 //
 // Refer to the file COPYING.MIT for licensing conditions.
 //
 // Copyright (c) 2011-2013, Dmitry Leskov. All rights reserved.
 //
-
-function debug(s) {
-    if (debug) WScript.Echo(s)
-}
 
 function log(s) {
     if (verbose) WScript.Echo(s)
@@ -61,7 +57,7 @@ function isANSIString(s) {
 }
 
 var verbose = true
-var debug = false
+var debug = function(s) {}
 WScript.Interactive = true
 
 var WSH = new ActiveXObject("WScript.Shell")
@@ -75,10 +71,10 @@ var utf8to16EXE = fso.BuildPath(homeFolder, "UTF8to16.exe")
 var src = fso.GetFolder(".")
 
 var args = WScript.Arguments
-WScript.Echo(args.length)
+debug(args.length)
 
 for (var i = 0; i < args.length; i++) {
-    WScript.Echo(i+":"+args(i))
+    debug(i+":"+args(i))
     if (args(i).charAt(0) != "-") {
         src = fso.GetFolder(args(i))
     }
@@ -161,9 +157,14 @@ function Traverse(folder) {
                 WScript.Sleep(100)
             }
 
-            var metadataFile = fso.OpenTextFile(tempMetadataPath,1,false,-1)
-            var metadata = metadataFile.ReadAll()
-            metadataFile.Close()
+            var metadata = ""
+            var metadataFile = fso.GetFile(tempMetadataPath)
+            if (metadataFile.Size > 0) {
+                // ReadAll() fails on empty files, hence this check
+                var metadataStream = metadataFile.OpenAsTextStream(1, -1)
+                metadata = metadataStream.ReadAll()
+                metadataStream.Close()
+            }
 
             var tags = []
             metadata = metadata.split(/\r\n|\r|\n/)
