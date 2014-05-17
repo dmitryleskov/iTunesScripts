@@ -1,11 +1,10 @@
-//
 // AddFLACs.js - add FLAC audio files to iTunes media library
 //
-// Version: 0.93
+// Version: 1.0
 //
 // Refer to the file COPYING.MIT for licensing conditions.
 //
-// Copyright (c) 2011-2013, Dmitry Leskov. All rights reserved.
+// Copyright (c) 2011-2014, Dmitry Leskov. All rights reserved.
 //
 
 function log(s) {
@@ -57,7 +56,10 @@ function isANSIString(s) {
 }
 
 var verbose = true
-var debug = function(s) {}
+var debug = false
+var ignoreMeta = false
+var overrideMeta = false
+var dryrun = false
 WScript.Interactive = true
 
 var WSH = new ActiveXObject("WScript.Shell")
@@ -70,13 +72,86 @@ var utf8to16EXE = fso.BuildPath(homeFolder, "UTF8to16.exe")
 
 var src = fso.GetFolder(".")
 
-var args = WScript.Arguments
-debug(args.length)
+// iTunes track fields
+//
+// Note: The Description field is reportedly limited to 255 characters.
+//       LongDescription, if present, is shown instead of Description 
+//       when you select Show Description from the context menu. 
+//       It seems that it cannot be set through iTunes UI, though,
+//       which is annoying, because the standard iOS Video app
+//       won't show Description, only LongDescription.
 
-for (var i = 0; i < args.length; i++) {
-    debug(i+":"+args(i))
-    if (args(i).charAt(0) != "-") {
-        src = fso.GetFolder(args(i))
+var fields = ("Name Artist AlbumArtist Album Grouping Composer Comments Genre "
+             +"Year TrackNumber TrackCount DiscNumber DiscCount "
+             +"Show SeasonNumber EpisodeID EpisodeNumber Description LongDescription "
+             +"SortName SortArtist SortAlbumArtist SortAlbum SortComposer SortShow "
+             +"Start Finish").split(" ")
+
+// Field values to set. Key-value pairs with keys from 'fields'
+var values = []
+
+// By default, FLAC metadata is used
+var regex = null
+
+try {
+    var args = WScript.Arguments
+    argScanLoop:
+    for (var i = 0; i < args.length; i++) {
+        if (args(i).slice(0,1) == '-') {
+            var key = args(i).slice(1).toLowerCase()
+            for (var j = 0; j < fields.length; j++) {
+                if (fields[j].toLowerCase() == key) {
+                    values[fields[j]] = args(++i)
+                    continue argScanLoop
+                }
+            }
+
+            switch(key) {
+            case "r":
+            case "-regex":
+                regex = new RegExp(args(++i), 'i') // Assuming case-insenstive filesystem
+                break
+            case "i":
+            case "-ignore-metadata":
+                ignoreMeta = true
+                WScript.Echo("Track metadata will be completely ignored.")
+                break
+            case "o":
+            case "-override-metadata":
+                overrideMeta = true
+                WScript.Echo("Command-line options will override metadata present in tracks.")
+                break
+            case "n":
+            case "-dry-run":
+                dryRun = true
+                WScript.Echo("Dry run - tracks will not be imported.")
+                break
+            case "v":
+            case "-verbose":
+                verbose = true
+                break
+            case "d":
+            case "-debug":
+                debug = true
+                break
+            default:
+                WScript.Echo("ERROR: Unknown command-line option " + args(i))
+                WScript.Quit(1)
+            }
+        } else { // Argument not prefixed with '-'
+            if (src != '.') {
+                WScript.Echo("ERROR: Multiple sources: \n  " + src + "\n  " + args(i))
+                WScript.Quit(1)
+            } else {
+                src = fso.GetFolder(args(i))
+            }
+        }
+    }
+} catch (e) {
+    if (e instanceof RangeError) {
+    	// args(i) is not defined
+        WScript.Echo("Required argument for "+args(i-1)+" is missing")
+        WScript.Quit(1)
     }
 }
 
@@ -123,6 +198,79 @@ if (savedEncoder.Name != "Lossless Encoder") {
 
 log("Importing FLAC files from "+src.Name)
 
+function extractMetadata(sourcePath) {
+    var tempMetadataPath = fso.BuildPath(tempFolderPath, 'temp.meta')
+    log("Extracting metadata from "+sourcePath)
+    exec = WSH.Exec('cmd /c ""'+metaflacEXE+'"'+
+                    ' --export-tags-to=-'+
+                    ' --no-utf8-convert'+
+                    ' "'+sourcePath+'"'+
+                    ' | "'+utf8to16EXE+'"'+
+                    ' > "'+tempMetadataPath+'""') 
+    while (exec.Status == 0) {
+        WScript.Sleep(100)
+    }
+
+    var metadata = ""
+    var metadataFile = fso.GetFile(tempMetadataPath)
+    if (metadataFile.Size > 0) {
+        // ReadAll() fails on empty files, hence this check
+        var metadataStream = metadataFile.OpenAsTextStream(1, -1)
+        metadata = metadataStream.ReadAll()
+        metadataStream.Close()
+    }
+
+    var tags = []
+    metadata = metadata.split(/\r\n|\r|\n/)
+    for (var i in metadata) {
+        var pair = metadata[i].match(/(.+?)=(.+)/)
+        if (pair) {
+            switch(pair[1].toUpperCase()) {
+            case 'ARTIST':
+                tags['Artist'] = pair[2]
+                break
+            case 'TITLE':
+                tags['Name'] = pair[2]
+                break
+            case 'ALBUM':
+                tags['Album'] = pair[2]
+                break
+            case 'DATE':
+                tags['Date'] = pair[2]
+                break
+            case 'TRACKNUMBER':
+                // Assume track numbers cannot have more than 3 digits
+                if (/^[0-9]{1,3}$/.test(pair[2])) {
+                    // Tracks 1-9 would often have a leading zero,
+                    // which Javascript used to interpret as radix 8
+                    // in the good old days.
+                    tags['TrackNumber'] = parseInt(pair[2], 10)
+                } else {
+                    warning("Not a valid track number: '" + pair[2] + "', ignoring")
+                }
+                break
+            case 'GENRE':
+                tags['Genre'] = pair[2]
+                break
+            case 'COMPILATION':
+                // I have not seen many samples of this tag,
+                // in fact EAC added COMPILATION=1 only for one
+                // of my compilation CDs. So I will assume for now
+                // that it is the valid way to mark compilations
+                tags['Compilation'] = pair[2] != 0
+                break
+            case 'COMMENT':
+                break
+            default:
+                log("Unrecognized meta tag: "+pair[1])
+                break
+            }
+        }
+    }
+    return tags
+}
+
+
 function Traverse(folder) {
     log("Scanning folder "+folder.Path)
     var files = new Enumerator(folder.Files)
@@ -132,6 +280,21 @@ function Traverse(folder) {
         if (/.flac$/i.test(file.Name)) {
             log("Found FLAC file "+file.Path)
 
+            if (regex !== null) {
+                var m = file.Path.match(regex)
+                if (m === null) {
+                    log("Regular expression did not match")
+                    continue folderScanLoop;
+                } else if (debug) {
+                    WScript.Echo("Regular expression matched, capture groups follow:")
+                    for (var i = 1; i < m.length; i++) {
+                        WScript.Echo(" " + i + ": " + m[i])
+                    }
+                }
+            } else {
+                m = null
+            }
+            
             // WshShell.Exec() is not Unicode-aware. Any non-ANSI characters
             // in its argument will get mangled. This workaround determines
             // if there are any non-ANSI characters in the full pathname 
@@ -144,86 +307,48 @@ function Traverse(folder) {
             } else {
                 sourcePath = file.Path
             }
+            
+            var tags = ignoreMeta ? [] : extractMetadata(sourcePath)
 
-            log("Extracting metadata from "+sourcePath)
-            var tempMetadataPath = fso.BuildPath(tempFolderPath, 'temp.meta')
-            exec = WSH.Exec('cmd /c ""'+metaflacEXE+'"'+
-                            ' --export-tags-to=-'+
-                            ' --no-utf8-convert'+
-                            ' "'+sourcePath+'"'+
-                            ' | "'+utf8to16EXE+'"'+
-                            ' > "'+tempMetadataPath+'""')
-            while (exec.Status == 0) {
-                WScript.Sleep(100)
-            }
-
-            var metadata = ""
-            var metadataFile = fso.GetFile(tempMetadataPath)
-            if (metadataFile.Size > 0) {
-                // ReadAll() fails on empty files, hence this check
-                var metadataStream = metadataFile.OpenAsTextStream(1, -1)
-                metadata = metadataStream.ReadAll()
-                metadataStream.Close()
-            }
-
-            var tags = []
-            metadata = metadata.split(/\r\n|\r|\n/)
-            for (var i in metadata) {
-                var pair = metadata[i].match(/(.+?)=(.+)/)
-                if (pair) {
-                    switch(pair[1].toUpperCase()) {
-                    case 'ARTIST':
-                        tags['Artist'] = pair[2]
-                        break
-                    case 'TITLE':
-                        tags['Title'] = pair[2]
-                        break
-                    case 'ALBUM':
-                        tags['Album'] = pair[2]
-                        break
-                    case 'DATE':
-                        tags['Date'] = pair[2]
-                        break
-                    case 'TRACKNUMBER':
-                        // Assume track numbers cannot have more than 3 digits
-                        if (/^[0-9]{1,3}$/.test(pair[2])) {
-                            // Tracks 1-9 would often have a leading zero,
-                            // which Javascript used to interpret as radix 8
-                            // in the good old days.
-                            tags['TrackNumber'] = parseInt(pair[2], 10)
-                        } else {
-                            warning("Not a valid track number: '" + pair[2] + "', ignoring")
-                        }
-                        break
-                    case 'GENRE':
-                        tags['Genre'] = pair[2]
-                        break
-                    case 'COMPILATION':
-                        // I have not seen many samples of this tag,
-                        // in fact EAC added COMPILATION=1 only for one
-                        // of my compilation CDs. So I will assume for now
-                        // that it is the valid way to mark compilations
-                        tags['Compilation'] = pair[2] != 0
-                        break
-                    case 'COMMENT':
-                        break
-                    default:
-                        log("Unrecognized meta tag: "+pair[1])
-                        break
+            if (tags != [] && !overrideMeta) {
+                for (var v in values) {
+                    if (v in tags) {
+                        log(v + " is present in metadata, ignoring (use --override-metadata to override)")
+                        delete tags[v]
                     }
                 }
             }
+            
+            // Set the fields specified on the command line
+            for (var v in values) {
+                var oldValue = v in tags ? tags[v] : null
+                if (m !== null) {
+                    value = file.Path.replace(regex, values[v])
+                } else {
+                    value = values[v]
+                }
+                if (value === '') {
+                    log("    "+v+" is empty, ignoring")
+                    continue
+                }
+                if (oldValue != value) {
+                    log("    "+v+": "+value+" (Was: "+oldValue+")")
+                    tags[v] = value
+                } else {
+                    log("    "+v+": "+value+" (no change)")
+                }
+            }
 
-            if (!('Title' in tags && 'Album' in tags && 'Artist' in tags)) {
-                WScript.Echo("No track title, album, or artist in metadata, skipping")
+            if (!('Name' in tags && 'Album' in tags && 'Artist' in tags)) {
+                WScript.Echo("No track name, album, and/or artist set, skipping")
                 continue folderScanLoop;
             }
 
-            var similar = iTunesLibrary.Search(tags.Title, 5)
+            var similar = iTunesLibrary.Search(tags.Name, 5)
             if (similar) {
                 for (i = 1; i<= similar.Count; i++) {
                     var track = similar.Item(i)
-                    if (track.Name   == tags.Title &&
+                    if (track.Name   == tags.Name &&
                         track.Album  == tags.Album &&
                         track.Artist == tags.Artist) {
                         warning("Track already in library, skipping")
@@ -232,6 +357,11 @@ function Traverse(folder) {
                 }
             }
 
+            if (dryRun) {
+                log('Dry run, no track import will occur')
+                continue folderScanLoop;
+            }
+           
             var tempWAVPath = fso.BuildPath(tempFolderPath, 'temp.wav')
             log("Decompressing FLAC file into "+tempWAVPath)
 
@@ -246,7 +376,7 @@ function Traverse(folder) {
 
             log("Writing metadata")
             if ('Artist' in tags) track.Artist = tags.Artist
-            if ('Title' in tags) track.Name = tags.Title
+            if ('Name' in tags) track.Name = tags.Name
             if ('Album' in tags) track.Album = tags.Album
             if ('Genre' in tags) track.Genre = tags.Genre
             if ('TrackNumber' in tags) track.TrackNumber = tags.TrackNumber

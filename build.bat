@@ -1,5 +1,5 @@
 @echo off
-set version=0.93
+set version=1.0
 if exist dist rmdir /s /q dist
 mkdir dist
 call src\utf8to16\build.bat
