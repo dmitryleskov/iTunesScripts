@@ -1,6 +1,6 @@
 // AddFLACs.js - add FLAC audio files to iTunes media library
 //
-// Version: 1.0
+// Version: 1.01
 //
 // Refer to the file COPYING.MIT for licensing conditions.
 //
@@ -59,7 +59,7 @@ var verbose = true
 var debug = false
 var ignoreMeta = false
 var overrideMeta = false
-var dryrun = false
+var dryRun = false
 WScript.Interactive = true
 
 var WSH = new ActiveXObject("WScript.Shell")
